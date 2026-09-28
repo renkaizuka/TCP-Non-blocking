@@ -10,17 +10,17 @@ NIM   : _(isi NIM Anda)_
 
 | File | Fungsi |
 |------|--------|
-| `protocol.py` | Protokol aplikasi: framing header fixed-length 5 byte (1B TYPE + 4B LENGTH). Dipakai bersama oleh ketiga server |
-| `TCPServer.py` | Server TCP **thread-per-client** (blocking I/O) — port 12000 |
-| `TCPServerAsync.py` | Server TCP **event-driven / non-blocking** (asyncio) — port 12100 |
-| `TCPServerSelect.py` | Server TCP **event-driven** dengan `selectors` (epoll/kqueue/select) — port 12200 |
-| `TCPClient.py` | Client CLI: chat, unggah/unduh file, uji burst. Kompatibel dengan ketiga server |
-| `UDPServer.py` | Server heartbeat UDP (1 soket), opsi simulasi packet loss & delay |
-| `UDPClient.py` | Pinger: 10 ping, timeout 1 detik, RTT min/avg/max, EstimatedRTT, packet loss |
-| `tcp_raw_demo.py` | Demonstrasi masalah message boundary TCP tanpa framing |
-| `benchmark.py` | Alat ukur: RSS, CPU, thread, FD, dan latensi p50/p95/p99 |
-| `run_benchmark.sh` | Menjalankan seluruh skenario perbandingan otomatis |
-| `summarize.py` | Meringkas `results.jsonl` menjadi tabel markdown (median) |
+| `src/protocol.py` | Protokol aplikasi: framing header fixed-length 5 byte (1B TYPE + 4B LENGTH). Dipakai bersama oleh ketiga server |
+| `src/TCPServer.py` | Server TCP **thread-per-client** (blocking I/O) — port 12000 |
+| `src/TCPServerAsync.py` | Server TCP **event-driven / non-blocking** (asyncio) — port 12100 |
+| `src/TCPServerSelect.py` | Server TCP **event-driven** dengan `selectors` (epoll/kqueue/select) — port 12200 |
+| `src/TCPClient.py` | Client CLI: chat, unggah/unduh file, uji burst. Kompatibel dengan ketiga server |
+| `src/UDPServer.py` | Server heartbeat UDP (1 soket), opsi simulasi packet loss & delay |
+| `src/UDPClient.py` | Pinger: 10 ping, timeout 1 detik, RTT min/avg/max, EstimatedRTT, packet loss |
+| `src/tcp_raw_demo.py` | Demonstrasi masalah message boundary TCP tanpa framing |
+| `src/benchmark.py` | Alat ukur: RSS, CPU, thread, FD, dan latensi p50/p95/p99 |
+| `scripts/run_benchmark.sh` | Menjalankan seluruh skenario perbandingan otomatis |
+| `src/summarize.py` | Meringkas `results.jsonl` menjadi tabel markdown (median) |
 | `hasil_benchmark.md` | Hasil pengukuran yang sudah jadi tabel |
 
 ## Format Frame TCP
@@ -43,17 +43,17 @@ Python 3.8+ saja, tanpa library tambahan.
 
 ```bash
 # --- Layanan TCP: pilih SALAH SATU model server ---
-python TCPServer.py       --port 12000     # thread-per-client
-python TCPServerAsync.py  --port 12100     # asyncio (event-driven)
-python TCPServerSelect.py --port 12200     # selectors/epoll (event-driven)
+python src/TCPServer.py       --port 12000     # thread-per-client
+python src/TCPServerAsync.py  --port 12100     # asyncio (event-driven)
+python src/TCPServerSelect.py --port 12200     # selectors/epoll (event-driven)
 
 # --- Layanan UDP heartbeat ---
-python UDPServer.py --port 12001                  # normal
-python UDPServer.py --port 12001 --loss 0.3       # simulasi 30% paket hilang
+python src/UDPServer.py --port 12001                  # normal
+python src/UDPServer.py --port 12001 --loss 0.3       # simulasi 30% paket hilang
 
 # --- Client (sesuaikan --port dengan server yang dijalankan) ---
-python TCPClient.py --host 127.0.0.1 --port 12000
-python UDPClient.py --host 127.0.0.1 --port 12001
+python src/TCPClient.py --host 127.0.0.1 --port 12000
+python src/UDPClient.py --host 127.0.0.1 --port 12001
 ```
 
 Perintah pada client TCP: `/nick <nama>`, `/users`, `/send <path>`, `/list`,
@@ -66,28 +66,28 @@ port 12000/TCP (atau 12100/12200) serta 12001/UDP di firewall.
 
 ```bash
 # Uji framing: 3 pesan tanpa delay diterima sebagai 3 pesan terpisah
-python TCPClient.py --port 12000 --demo-burst
+python src/TCPClient.py --port 12000 --demo-burst
 
 # Bandingkan dengan TCP tanpa framing (pesan tergabung jadi satu)
-python tcp_raw_demo.py server      # terminal A
-python tcp_raw_demo.py client      # terminal B
+python src/tcp_raw_demo.py server      # terminal A
+python src/tcp_raw_demo.py client      # terminal B
 
 # Balasan UDP terlambat (uji pembuangan paket stale)
-python UDPServer.py --loss 0.2 --delay 1.5
+python src/UDPServer.py --loss 0.2 --delay 1.5
 
 # Bind eksplisit port client (jalankan 2 kali bersamaan untuk melihat konflik)
-python UDPClient.py --bind-port 5432 --count 20
+python src/UDPClient.py --bind-port 5432 --count 20
 ```
 
 ## Benchmark: Thread-per-Client vs Event-Driven
 
 ```bash
 # Seluruh skenario otomatis (3 model x 50/100 klien x 2 mode x 3 ulangan)
-bash run_benchmark.sh 30 3 both
+bash scripts/run_benchmark.sh 30 3 both
 
 # Atau satu pengukuran manual
-python TCPServerAsync.py --port 12100 --quiet &
-python benchmark.py --port 12100 --clients 100 --rounds 30 \
+python src/TCPServerAsync.py --port 12100 --quiet &
+python src/benchmark.py --port 12100 --clients 100 --rounds 30 \
        --mode echo --pid $! --label "Asyncio"
 ```
 
