@@ -21,6 +21,8 @@ NIM   : 25/573150/PPA/07212
 | `src/benchmark.py` | Alat ukur: RSS, CPU, thread, FD, dan latensi p50/p95/p99 |
 | `scripts/run_benchmark.sh` | Menjalankan seluruh skenario perbandingan otomatis |
 | `src/summarize.py` | Meringkas `results.jsonl` menjadi tabel markdown (median) |
+| `src/metrics.py` | Pengukuran RSS/CPU/thread proses sendiri, lintas OS |
+| `src/plot/plot_benchmark.py` | Menggambar grafik dari hasil benchmark (PNG/PDF/SVG) |
 | `hasil_benchmark.md` | Hasil pengukuran yang sudah jadi tabel |
 
 ## Format Frame TCP
@@ -111,3 +113,44 @@ Temuan utama: pada 50–100 koneksi ketiganya sama-sama sanggup (0 error dari 81
 pesan), tetapi model event-driven memakai memori **7–13× lebih hemat** dan tidak
 menambah thread sama sekali. Selisih latensi baru melebar jelas saat jumlah koneksi
 dinaikkan ke 200–400.
+
+**Metrik memori/CPU `null`** — server mengukur dirinya sendiri lalu melaporkannya
+lewat perintah `/stats` di soket, jadi ini seharusnya jalan di semua sistem. Kalau
+tetap kosong:
+
+```bash
+python metrics.py          # uji langsung; harus mencetak rss_kb
+pip install psutil         # kalau rss_kb masih null
+```
+### Grafik
+
+```bash
+pip install matplotlib
+python plot_benchmark.py                  # 7 grafik PNG di folder grafik/
+python plot_benchmark.py --dark           # tema gelap (untuk slide)
+python plot_benchmark.py --format pdf     # vektor, untuk laporan cetak
+python plot_benchmark.py --only 1 4       # hanya grafik nomor 1 dan 4
+```
+
+| Berkas | Isi |
+|---|---|
+| `1_memori_per_koneksi.png` | Memori per koneksi — temuan utama |
+| `2_skala_memori.png` | Total memori vs jumlah koneksi |
+| `3_jumlah_thread.png` | Jumlah thread vs jumlah koneksi (skala log) |
+| `4_latensi.png` | Latensi rata-rata & p95 |
+| `5_throughput.png` | Throughput |
+| `6_echo_vs_chat.png` | Pengaruh broadcast O(N²) |
+| `ringkasan.png` | Keenam grafik dalam satu halaman |
+
+Ringkasan pada 100 koneksi bersamaan, mode echo (median 3 ulangan, 2 vCPU):
+
+| Model | RTT avg | p95 | Throughput | RSS/koneksi | Thread |
+|---|---|---|---|---|---|
+| Threading | 11,22 ms | 43,55 ms | 5.739 msg/s | 18,1 KB | 102 |
+| Asyncio | 8,07 ms | 12,94 ms | 11.976 msg/s | 6,6 KB | 2 |
+| Selectors | 9,41 ms | 12,36 ms | 10.419 msg/s | 1,6 KB | 1 |
+
+Temuan utama: pada 50–100 koneksi ketiganya sama-sama sanggup (0 error dari 81.000
+pesan), tetapi model event-driven memakai memori **3–11× lebih hemat** dan tidak
+menambah thread sama sekali. Ekor latensi (p95/p99) model thread jauh lebih panjang:
+43,6 ms vs 12,4 ms.
