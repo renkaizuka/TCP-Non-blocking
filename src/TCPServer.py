@@ -10,11 +10,13 @@ Benchmark: python TCPServer.py --port 12000 --quiet
 """
 
 import argparse
+import json
 import os
 import socket
 import threading
 import time
 
+import metrics
 from protocol import (T_CMD, T_ERROR, T_FILE, T_INFO, T_TEXT, pack_file,
                       recv_frame, send_frame, unpack_file)
 
@@ -86,15 +88,13 @@ def handle_command(conn, cmd):
         # mengukur model konkurensi murni, tanpa beban fan-out O(N^2).
         safe_send(conn, T_INFO, f"ACK: {arg}".encode())
     elif name == "stats":
-        # Dipakai skrip benchmark untuk membaca kondisi server.
+        # Server mengukur DIRINYA SENDIRI lalu melaporkannya lewat soket.
+        # Jauh lebih andal daripada benchmark mengintip lewat PID, yang gagal
+        # di Windows (PID Git Bash bukan PID Windows) dan di OS tanpa /proc.
+        snap = metrics.snapshot()
         with clients_lock:
-            n = len(clients)
-        try:
-            nfd = len(os.listdir(f"/proc/{os.getpid()}/fd"))
-        except OSError:
-            nfd = -1
-        safe_send(conn, T_INFO,
-                  f"STATS clients={n} threads={threading.active_count()} fds={nfd}".encode())
+            snap["clients"] = len(clients)
+        safe_send(conn, T_INFO, ("STATS " + json.dumps(snap)).encode())
     elif name == "quit":
         return False
     else:

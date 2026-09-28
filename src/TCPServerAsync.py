@@ -18,9 +18,11 @@ Benchmark: python TCPServerAsync.py --port 12100 --quiet
 
 import argparse
 import asyncio
+import json
 import os
 import time
 
+import metrics
 from protocol import (T_CMD, T_ERROR, T_FILE, T_INFO, T_TEXT, build_frame,
                       pack_file, recv_frame_async, unpack_file)
 
@@ -93,14 +95,11 @@ async def handle_command(writer, cmd):
         # mengukur model konkurensi murni, tanpa beban fan-out O(N^2).
         safe_send(writer, T_INFO, f"ACK: {arg}".encode())
     elif name == "stats":
-        try:
-            nfd = len(os.listdir(f"/proc/{os.getpid()}/fd"))
-        except OSError:
-            nfd = -1
-        import threading
-        safe_send(writer, T_INFO,
-                  f"STATS clients={len(clients)} threads={threading.active_count()} "
-                  f"fds={nfd} tasks={len(asyncio.all_tasks())}".encode())
+        # Server mengukur dirinya sendiri (lihat metrics.py).
+        snap = metrics.snapshot()
+        snap["clients"] = len(clients)
+        snap["tasks"] = len(asyncio.all_tasks())
+        safe_send(writer, T_INFO, ("STATS " + json.dumps(snap)).encode())
     elif name == "quit":
         return False
     else:

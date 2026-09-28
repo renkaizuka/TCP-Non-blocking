@@ -16,11 +16,13 @@ Jalankan:  python TCPServerSelect.py --port 12200
 """
 
 import argparse
+import json
 import os
 import selectors
 import socket
 import time
 
+import metrics
 from protocol import (HEADER, HEADER_SIZE, MAX_PAYLOAD, T_CMD, T_ERROR,
                       T_FILE, T_INFO, T_TEXT, build_frame, pack_file, unpack_file)
 
@@ -98,12 +100,11 @@ def handle_command(c, cmd):
         # mengukur model konkurensi murni, tanpa beban fan-out O(N^2).
         c.queue(T_INFO, f"ACK: {arg}".encode())
     elif name == "stats":
-        try:
-            nfd = len(os.listdir(f"/proc/{os.getpid()}/fd"))
-        except OSError:
-            nfd = -1
-        c.queue(T_INFO, f"STATS clients={len(conns)} threads=1 fds={nfd} "
-                        f"selector={type(sel).__name__}".encode())
+        # Server mengukur dirinya sendiri (lihat metrics.py).
+        snap = metrics.snapshot()
+        snap["clients"] = len(conns)
+        snap["selector"] = type(sel).__name__
+        c.queue(T_INFO, ("STATS " + json.dumps(snap)).encode())
     elif name == "quit":
         return False
     else:
