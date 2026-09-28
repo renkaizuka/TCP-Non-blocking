@@ -13,7 +13,7 @@ import statistics
 import sys
 from collections import defaultdict
 
-PATH = sys.argv[1] if len(sys.argv) > 1 else "results.jsonl"
+PATH = sys.argv[1] if len(sys.argv) > 1 else "scripts/results.jsonl"
 ORDER = ["Threading", "Asyncio", "Selectors"]
 
 COLS = [
