@@ -3,8 +3,8 @@
 Tugas Jaringan Komputer Lanjut (S2 Ilmu Komputer).
 Referensi: Kurose & Ross, *Computer Networking: A Top-Down Approach* 9th Ed., Section 2.6.
 
-Nama  : _(isi nama Anda)_
-NIM   : _(isi NIM Anda)_
+Nama  : Fachry Anwar Rafi
+NIM   : 25/573150/PPA/07212
 
 ## Struktur File
 
